@@ -50,10 +50,16 @@ const config: HardhatUserConfig = {
     // View the networks that are pre-configured.
     // If the network you are looking for is not here you can add new network settings
     hardhat: {
+      blockGasLimit: 60_000_000,
       forking: {
         url: `https://eth-mainnet.alchemyapi.io/v2/${providerApiKey}`,
         enabled: process.env.MAINNET_FORKING_ENABLED === "true",
       },
+    },
+    localhost: {
+      // Match the hardhat in-process gas limit so large Uniswap v4 contracts
+      // (PoolManager, PositionManager) can be deployed via `yarn deploy`.
+      blockGasLimit: 60_000_000,
     },
     mainnet: {
       url: "https://mainnet.rpc.buidlguidl.com",

@@ -103,7 +103,7 @@ contract RewardTokensManager is Ownable {
             currency0 = Currency.wrap(_fnbToken);
             currency1 = Currency.wrap(_pnpToken);
         }
-
+        
         poolKey = PoolKey({
             currency0:   currency0,
             currency1:   currency1,
