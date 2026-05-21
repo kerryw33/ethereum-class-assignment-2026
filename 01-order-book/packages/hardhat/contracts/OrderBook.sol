@@ -1,7 +1,7 @@
-// Kerry-Lynn Whyte
+// Kerry Lynn Whyte - ECO5037W Assignment 2 Part 1
+// 2026-05-21
 // Simple order book implementation for trading between two ERC20 tokens (tokenA and tokenB) using a decentralised exchange appproach.
-// all tokens are minted at once
-// uses internal balance for spenders/receivers
+// all tokens are minted at once, uses internal balance for spenders/receivers
 // need to ensure sender has enough balance before trading and both sender/receiver balances updated after settlement
 // allowances - allows another address to spend tokens on its behalf - owner calls approve(spender, amount), and the spender later uses transferFrom(owner, recipient, amount) up to that approved limit
 pragma solidity ^0.8.20; // SPDX-License-Identifier

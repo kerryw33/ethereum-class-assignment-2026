@@ -1,5 +1,6 @@
 // Kerry Lynn Whyte - ECO5037W Assignment 2 part 2
-//  A smart contract which creates a Uniswap v4 liquidity pool using the protocol’s PoolManager
+// 2026-05-21
+// A smart contract which creates a Uniswap v4 liquidity pool using the protocol’s PoolManager
 // price is discovered internally from pool state (reserves/liquidity curve) and it updates automatically as swaps and liquidity changes happen
 // token holders trade against the pool's liquidity, not directly with other traders (as in an order book)
 
