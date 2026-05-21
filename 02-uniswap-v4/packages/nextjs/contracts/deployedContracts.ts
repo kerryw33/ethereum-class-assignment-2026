@@ -1068,7 +1068,7 @@ const deployedContracts = {
       deployedOnBlock: 1,
     },
     RewardTokensManager: {
-      address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      address: "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
       abi: [
         {
           inputs: [
@@ -1557,7 +1557,7 @@ const deployedContracts = {
         renounceOwnership: "@openzeppelin/contracts/access/Ownable.sol",
         transferOwnership: "@openzeppelin/contracts/access/Ownable.sol",
       },
-      deployedOnBlock: 12,
+      deployedOnBlock: 22,
     },
   },
 } as const;

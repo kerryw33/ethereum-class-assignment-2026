@@ -1,3 +1,5 @@
+// Kerry Lynn Whyte - ECO5037W Assignment 2 
+// 2026-05-21
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
