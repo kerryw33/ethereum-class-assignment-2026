@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Kerry Lynn Whyte - ECO5037W Assignment 2 Part 1
 // 2026-05-21
 // Simple order book implementation for trading between two ERC20 tokens (tokenA and tokenB) using a decentralised exchange appproach.
