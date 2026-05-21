@@ -52,3 +52,66 @@ Assignment focus:
 - Install and use `@uniswap/v4-core`.
 - Create and initialize a pool via `PoolManager` for `PNPT`/`FNBT`.
 - Mint a liquidity position in the configured fee tier and tick spacing.
+
+---
+
+## Running the Assignment (Marker Instructions)
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) v18 or later
+- [Yarn](https://classic.yarnpkg.com/) (any version — both Classic and Berry work)
+- Git
+
+### Clone the repository
+
+```bash
+git clone https://github.com/kerryw33/ethereum-class-assignment-2026.git
+cd ethereum-class-assignment-2026
+```
+
+---
+
+### Part 1 — Order Book (`01-order-book`)
+
+Install dependencies and run tests:
+
+```bash
+cd 01-order-book
+yarn install
+yarn test
+```
+
+All 7 tests should pass.
+
+---
+
+### Part 2 — Uniswap v4 (`02-uniswap-v4`)
+
+`01-order-book` and `02-uniswap-v4` are separate projects — each needs its own `yarn install` run from its own root folder.
+
+**Terminal 1** — start the local Hardhat chain:
+
+```bash
+cd 02-uniswap-v4
+yarn install
+yarn chain
+```
+
+**Terminal 2** — deploy contracts and run tests:
+
+```bash
+cd 02-uniswap-v4
+yarn deploy
+yarn test
+```
+
+All 10 tests should pass (7 for Part 1 contracts, 3 for Part 2/3 pool and liquidity).
+
+> **Note:** `yarn deploy` must run before `yarn test` for Part 2, as the tests rely on the deployed contract addresses written to `packages/nextjs/contracts/deployedContracts.ts` by the deploy script.
+
+> **Note:** If you see a `"cannot get the transaction for ... previous deployment"` error, delete the stale deployment cache and redeploy:
+> ```bash
+> rm -rf packages/hardhat/deployments/localhost
+> yarn deploy
+> ```
