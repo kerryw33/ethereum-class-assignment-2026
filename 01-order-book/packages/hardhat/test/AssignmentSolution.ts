@@ -8,12 +8,12 @@ describe("Assignment Solution", function () {
   const SMALL_TRADE_AMOUNT = ethers.parseUnits("4", 18);
   const PRICE = 2n;
 
-  let tokenA: PNPToken;
-  let tokenB: FNBToken;
+  let tokenA: PNPToken; // base token  
+  let tokenB: FNBToken; // quote token 
   let orderBook: OrderBook;
 
   beforeEach(async () => {
-    const [deployer] = await ethers.getSigners();
+    const [deployer] = await ethers.getSigners(); 
 
     const tokenAFactory = await ethers.getContractFactory("PNPToken");
     tokenA = (await tokenAFactory.deploy(INITIAL_SUPPLY)) as PNPToken;
@@ -32,37 +32,38 @@ describe("Assignment Solution", function () {
   });
 
   describe("Part 1 - ERC20 tokens", function () {
+    // metadata and total supply - name, symbol, decimals, totalSupply
     it("sets token metadata and total supply", async () => {
       expect(await tokenA.name()).to.equal("PNP Token");
-      expect(await tokenA.symbol()).to.equal("PNPT");
+      expect(await tokenA.symbol()).to.equal("PNPT"); 
       expect(await tokenA.totalSupply()).to.equal(INITIAL_SUPPLY);
 
       expect(await tokenB.name()).to.equal("FNB Token");
       expect(await tokenB.symbol()).to.equal("FNBT");
       expect(await tokenB.totalSupply()).to.equal(INITIAL_SUPPLY);
     });
-
+    // transfer - moves tokens from sender to recipient, requires sender to have sufficient balance
     it("supports transfers", async () => {
-      const [, alice] = await ethers.getSigners();
+      const [, alice] = await ethers.getSigners(); 
       const amount = ethers.parseUnits("100", 18);
 
-      await tokenA.transfer(alice.address, amount);
+      await tokenA.transfer(alice.address, amount); // Deployer transfers 100 tokens to Alice
       expect(await tokenA.balanceOf(alice.address)).to.equal(amount);
     });
-
+    // approve and transferfrom - allows spender to transfer token on owner's behalf (up until approved amount)
     it("supports approve and transferFrom", async () => {
       const [, alice, bob] = await ethers.getSigners();
       const amount = ethers.parseUnits("50", 18);
 
-      await tokenA.transfer(alice.address, amount);
-      await tokenA.connect(alice).approve(bob.address, amount);
-      await tokenA.connect(bob).transferFrom(alice.address, bob.address, amount);
+      await tokenA.transfer(alice.address, amount); // Alice gets 50 tokens
+      await tokenA.connect(alice).approve(bob.address, amount); // Alice approves Bob to transfer 50 tokens on her behalf
+      await tokenA.connect(bob).transferFrom(alice.address, bob.address, amount); // Bob transfers 50 tokens from Alice to himself
 
-      expect(await tokenA.balanceOf(alice.address)).to.equal(0);
-      expect(await tokenA.balanceOf(bob.address)).to.equal(amount);
+      expect(await tokenA.balanceOf(alice.address)).to.equal(0); // Alice balance = 0
+      expect(await tokenA.balanceOf(bob.address)).to.equal(amount); // Bob balance = 50 tokens
     });
   });
-
+  
   describe("Part 2 - Order book", function () {
     async function seedAndApprove() {
       const [, buyer, seller] = await ethers.getSigners();

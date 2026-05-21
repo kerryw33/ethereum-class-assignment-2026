@@ -1,8 +1,14 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+// Kerry-Lynn Whyte
+// Simple order book implementation for trading between two ERC20 tokens (tokenA and tokenB) using a decentralised exchange appproach.
+// all tokens are minted at once
+// uses internal balance for spenders/receivers
+// need to ensure sender has enough balance before trading and both sender/receiver balances updated after settlement
+// allowances - allows another address to spend tokens on its behalf - owner calls approve(spender, amount), and the spender later uses transferFrom(owner, recipient, amount) up to that approved limit
+pragma solidity ^0.8.20; // SPDX-License-Identifier
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 
 contract OrderBook {
     using SafeERC20 for IERC20;
@@ -10,7 +16,7 @@ contract OrderBook {
     IERC20 public tokenA; // base token 
     IERC20 public tokenB; // quote token 
 
-    enum OrderType { Buy, Sell } // order can only be of buy or sell type -(Buy = 0, Sell = 1)
+    enum OrderType { Buy, Sell } // order can only be of buy or sell type (Buy = 0, Sell = 1)
     enum OrderStatus { Open, Closed } // order status can be open/closed (Open = 0, Closed = 1
 
     // Order structure to represent each order in the order book
@@ -25,9 +31,10 @@ contract OrderBook {
     // array to store orders in order book - initially empty
     Order[] public orders;
 
-    // Events for order placement, matching, and cancellation
+    // Events for order placement, matching, fill updates, and cancellation
     event OrderPlaced(uint256 orderId, address trader, uint8 orderType, address sellToken, address buyToken, uint256 amount, uint256 price); // Emit event with details of the placed order, including token addresses for clarity
     event OrderMatched(uint256 buyOrderId, uint256 sellOrderId, uint256 amount); // Emit event with details of the matched orders and fill amount
+    event OrderFilled(uint256 orderId, uint256 fillAmount, uint256 totalFilled); // Emit event when an order is partially or fully filled, tracking cumulative fill progress
     event OrderCanceled(uint256 orderId); // Emit event with details of the canceled order
 
     // Custom errors for better error handling and gas efficiency
@@ -36,17 +43,22 @@ contract OrderBook {
     error PriceMismatch(); // error when bid price is less than asking price
     error UnauthorizedCancellation(); // error when someone tries to cancel order they didn't place
 
-    // Constructor to initialize the order book with the two tokens being traded
+    /// @notice Initialises the order book with the two tokens to be traded.
+    /// @param _tokenA  base token (tokenA) address
+    /// @param _tokenB  quote token (tokenB) address 
     constructor(address _tokenA, address _tokenB) {
         tokenA = IERC20(_tokenA);
         tokenB = IERC20(_tokenB);
     }
-    // Function to place a buy order - buyer must escrow quote tokens upfront (amount = num tokens)
+    /// @notice Places a buy order for tokenA, escrowing the required tokenB upfront.
+    /// @param amount Number of base tokens (tokenA) the buyer wants to purchase.
+    /// @param price  Price per base token denominated in quote tokens (tokenB).
+    /// @return orderId The index of the newly created order in the orders array.
     function placeBuyOrder(uint256 amount, uint256 price) external returns (uint256 orderId) {
         if (amount == 0) revert InvalidAmount(); // amount (number of tokens) must be > 0
         if (price == 0) revert InvalidPrice();  // price must be > 0
 
-        orderId = orders.length; // order ID is the current length of the orders array
+        orderId = orders.length; // index of new order (at end of array)
         // Create new buy order and add to order book - initialise filled to 0 and status as Open
         orders.push(Order({
             trader: msg.sender,
@@ -57,12 +69,16 @@ contract OrderBook {
             status: OrderStatus.Open // order is open until fully filled or cancelled
         }));
 
-        // Escrow tokenB (quote token) from buyer upfront
-        tokenB.safeTransferFrom(msg.sender, address(this), amount * price);
-        // Emit event with details of the placed order, including token addresses for clarity
-        emit OrderPlaced(orderId, msg.sender, 0, address(tokenB), address(tokenA), amount, price);
+        // Escrow tokenB (quote token) from buyer upfront based on total cost in terms of tokenB(amount * price)
+        tokenB.safeTransferFrom(msg.sender, address(this), amount * price); 
+        // Emit event with details of the placed order (including token addresses)
+        emit OrderPlaced(orderId, msg.sender, 0, address(tokenB), address(tokenA), amount, price); 
     }
-    // Function to place a sell order - seller must escrow base tokens upfront
+
+    /// @notice Places a sell order for tokenA, escrowing the base tokens upfront.
+    /// @param amount Number of base tokens (tokenA) the seller wants to sell.
+    /// @param price  Minimum price per base token the seller will accept, in tokenB.
+    /// @return orderId The index of the newly created order in the orders array.
     function placeSellOrder(uint256 amount, uint256 price) external returns (uint256 orderId) {
         if (amount == 0) revert InvalidAmount();
         if (price == 0) revert InvalidPrice();
@@ -79,19 +95,23 @@ contract OrderBook {
         }));
 
         // Escrow tokenA (base token) from seller upfront
-        tokenA.safeTransferFrom(msg.sender, address(this), amount);
+        tokenA.safeTransferFrom(msg.sender, address(this), amount); 
         // Emit event with details of the placed order, including token addresses for clarity
         emit OrderPlaced(orderId, msg.sender, 1, address(tokenA), address(tokenB), amount, price);
     }
 
-    // Function to match a buy order with a sell order - checks price and updates order statuses
+    /// @notice Matches a buy order with a sell order, transferring tokens to each trader.
+    ///         Fills up to the smaller of the two orders' remaining amounts (partial fills supported).
+    /// @param buyOrderId  Index of the buy order in the orders array.
+    /// @param sellOrderId Index of the sell order in the orders array.
     function matchOrders(uint256 buyOrderId, uint256 sellOrderId) external {
         Order storage buyOrder = orders[buyOrderId]; // Load buy order from storage
         Order storage sellOrder = orders[sellOrderId]; // Load sell order from storage
 
-        // if buy order (bid)price is less than sell order (asking) price, then orders cannot be matched 
+        // if buy order (bid) price is less than sell order (asking) price - orders cannot be matched 
         if (buyOrder.price < sellOrder.price) revert PriceMismatch();
 
+        // otherwise orders can be matched 
         uint256 buyRemaining = buyOrder.amount - buyOrder.filled; // Calculate remaining amount for buy order
         uint256 sellRemaining = sellOrder.amount - sellOrder.filled; // Calculate remaining amount for sell order
         uint256 fillAmount = buyRemaining < sellRemaining ? buyRemaining : sellRemaining; // Determine fill amount based on smaller remaining amount
@@ -105,10 +125,15 @@ contract OrderBook {
         tokenA.safeTransfer(buyOrder.trader, fillAmount); // Transfer base tokens from order book to buyer
         tokenB.safeTransfer(sellOrder.trader, fillAmount * buyOrder.price); // Transfer quote tokens from order book to seller based on buy order price (not sell order price, to ensure price priority for buyer)
 
+        // Emit fill update for each order so listeners can track partial fill progress
+        emit OrderFilled(buyOrderId, fillAmount, buyOrder.filled);
+        emit OrderFilled(sellOrderId, fillAmount, sellOrder.filled);
         emit OrderMatched(buyOrderId, sellOrderId, fillAmount); // Emit event with details of the matched orders and fill amount
     }
 
-    // Function to cancel an open order - only the original trader can cancel their order
+    /// @notice Cancels an open order and refunds the escrowed tokens to the trader.
+    ///         Only the trader who placed the order may cancel it.
+    /// @param orderId Index of the order to cancel in the orders array.
     function cancelOrder(uint256 orderId) external {
         Order storage order = orders[orderId]; // Load order from storage
         // only trader who placed order can cancel, otherwise revert with error
@@ -127,12 +152,22 @@ contract OrderBook {
 
         emit OrderCanceled(orderId); // Emit event with details of the canceled order
     }
-    // function returns remaining amount for a given order ID - useful for front-end display of order status
+    /// @notice Returns the unfilled token amount remaining for a given order.
+    /// @param orderId Index of the order in the orders array.
+    /// @return The number of base tokens still to be filled.
     function remaining(uint256 orderId) external view returns (uint256) {
-        return orders[orderId].amount - orders[orderId].filled; // remaining = total order amount-filled amount
+        uint256 balance_rem = orders[orderId].amount - orders[orderId].filled;
+        return balance_rem; // remaining = total order amount-filled amount
     }
-    // function checks if an order is still open - returns true if order status is Open, false otherwise
+    /// @notice Checks whether an order is still open and available for matching or cancellation.
+    /// @param orderId Index of the order in the orders array.
+    /// @return True if the order status is Open, false if it is Closed.
     function isOpen(uint256 orderId) external view returns (bool) {
-        return orders[orderId].status == OrderStatus.Open;
+        OrderStatus open_status = orders[orderId].status;
+        if (open_status == OrderStatus.Open) {
+            return true; // order is open
+        } else {
+            return false; // order is closed
+        }
     }
 }
