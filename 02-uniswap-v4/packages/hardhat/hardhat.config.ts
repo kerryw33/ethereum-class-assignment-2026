@@ -35,11 +35,6 @@ const config: HardhatUserConfig = {
           },
           // viaIR avoids stack-too-deep errors in complex Uniswap v4 contracts
           viaIR: true,
-          // permit2 is bundled inside v4-periphery's lib folder; remap so Hardhat
-          // can resolve it on a fresh clone without a separate install
-          remappings: [
-            "permit2/=node_modules/@uniswap/v4-periphery/lib/permit2/",
-          ],
         },
       },
     ],
